@@ -47,7 +47,15 @@
  <h2 id="inviteTitle">Invite employee</h2>
  <p class="muted" id="inviteHelp">Add only the employee email. They complete their own profile on first access.</p>
  <div class="grid2"><div><label id="inviteEmailLabel">Employee email</label><input id="inviteEmail" type="email" placeholder="name@company.com"></div><div style="align-self:end"><button class="btn" onclick="createEmployeeInvite()" id="inviteBtn">Create access</button></div></div>
-</div><div class="card"><h3 id="pendingInvitesTitle">Convites</h3><div id="pendingInvites"></div></div>
+</div><div class="card">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h3 id="pendingInvitesTitle" style="margin:0">Convites</h3>
+    <button id="toggleInvitesBtn" class="btn secondary small" type="button" onclick="toggleInvitesPanel()">− Minimizar</button>
+  </div>
+  <div id="pendingInvitesPanel" style="margin-top:12px">
+    <div id="pendingInvites"></div>
+  </div>
+</div>
 <div class="toolbar"><h1 data-i18n="employees">Employees</h1><div class="actions"><button class="btn secondary" onclick="exportEmployees()">Export CSV</button><button class="btn secondary" onclick="document.getElementById('csvEmployees').click()">Import CSV</button><input id="csvEmployees" class="hide" type="file" accept=".csv,text/csv" onchange="importEmployees(this.files[0])"><button class="btn" onclick="openEmployeeForm()">+ <span data-i18n="addemployee">Add employee</span></button></div></div><div class="course"><div class="filters"><input id="empSearch" placeholder="Search name, ID or email" oninput="renderEmployeeList()"><select id="filterDept" onchange="renderEmployeeList()"></select><select id="filterRole" onchange="renderEmployeeList()"></select><select id="filterShift" onchange="renderEmployeeList()"></select></div></div><div id="employeeList"></div></section>
 <section id="employeeProfile" class="page"><button class="btn secondary" onclick="show('employees')" data-i18n="back">← Back</button><div id="employeeProfileBody" style="margin-top:12px"></div></section>
 <div id="firstPhotoNotice" class="modal hide"><div class="modalbox">
@@ -181,12 +189,17 @@ async function load(){let rs=await Promise.all([sb.from('courses').select('*,cou
 
 
 
+window.toggleInvitesPanel=()=>{
+ let p=document.getElementById('pendingInvitesPanel'),b=document.getElementById('toggleInvitesBtn');if(!p||!b)return;
+ let closed=p.style.display==='none';p.style.display=closed?'block':'none';
+ b.textContent=closed?(lang==='pt'?'− Minimizar':'− Minimize'):(lang==='pt'?'+ Maximizar':'+ Maximize');
+};
 window.inviteStatusText=e=>e.invite_cancelled_at?(lang==='pt'?'Cancelado':'Cancelled'):e.profile_completed?(lang==='pt'?'Cadastro concluído':'Registration completed'):e.auth_user_id?(lang==='pt'?'Convite aceito — cadastro pendente':'Invite accepted — profile pending'):(lang==='pt'?'Convite enviado':'Invitation sent');
 window.renderPendingInvites=()=>{if(typeof pendingInvites==='undefined')return;let rows=(state.e||[]).filter(e=>e.profile_completed===false||e.invite_cancelled_at);pendingInvites.innerHTML=rows.length?rows.map(e=>`<div style="border-bottom:1px solid #e5e7eb;padding:12px 0"><b>${E(e.email)}</b><br><span class="muted">${E(inviteStatusText(e))}${e.invited_at?' • '+F(e.invited_at):''}</span>${!e.auth_user_id&&!e.invite_cancelled_at?`<div class="row" style="margin-top:8px"><button class="btn secondary small" onclick="resendEmployeeInvite('${e.email}')">${lang==='pt'?'Reenviar':'Resend'}</button><button class="btn danger small" onclick="cancelEmployeeInvite('${e.id}')">${lang==='pt'?'Cancelar':'Cancel'}</button></div>`:''}</div>`).join(''):`<p class="muted">${lang==='pt'?'Nenhum convite pendente.':'No pending invitations.'}</p>`};
 window.resendEmployeeInvite=async email=>{inviteEmail.value=email;await createEmployeeInvite()};
 window.cancelEmployeeInvite=async id=>{if(!confirm(lang==='pt'?'Cancelar este convite?':'Cancel this invitation?'))return;let{error}=await sb.rpc('cancel_employee_invite',{p_employee_id:id});if(error)return alert(error.message);await load();show('employees')};
 window.applyNewFeatureLanguage=()=>{
- if(typeof pendingInvitesTitle!=='undefined')pendingInvitesTitle.textContent=lang==='pt'?'Convites':'Invitations'; if(typeof inviteTitle!=='undefined'){inviteTitle.textContent=lang==='pt'?'Convidar funcionário':'Invite employee';inviteHelp.textContent=lang==='pt'?'Informe apenas o e-mail. O funcionário completa o próprio cadastro no primeiro acesso.':'Add only the employee email. They complete their own profile on first access.';inviteEmailLabel.textContent=lang==='pt'?'E-mail do funcionário':'Employee email';inviteBtn.textContent=lang==='pt'?'Criar acesso':'Create access'}
+ if(typeof pendingInvitesTitle!=='undefined')pendingInvitesTitle.textContent=lang==='pt'?'Convites':'Invitations'; if(typeof toggleInvitesBtn!=='undefined'){let closed=document.getElementById('pendingInvitesPanel')?.style.display==='none';toggleInvitesBtn.textContent=closed?(lang==='pt'?'+ Maximizar':'+ Maximize'):(lang==='pt'?'− Minimizar':'− Minimize');} if(typeof inviteTitle!=='undefined'){inviteTitle.textContent=lang==='pt'?'Convidar funcionário':'Invite employee';inviteHelp.textContent=lang==='pt'?'Informe apenas o e-mail. O funcionário completa o próprio cadastro no primeiro acesso.':'Add only the employee email. They complete their own profile on first access.';inviteEmailLabel.textContent=lang==='pt'?'E-mail do funcionário':'Employee email';inviteBtn.textContent=lang==='pt'?'Criar acesso':'Create access'}
  if(typeof cpTitle!=='undefined'){cpTitle.textContent=lang==='pt'?'Complete seu cadastro':'Complete your profile';cpHelp.textContent=lang==='pt'?'Complete seus dados antes de acessar os treinamentos.':'Complete your details before accessing training.';cpNameLabel.textContent=lang==='pt'?'Nome completo':'Full name';cpDeptLabel.textContent=lang==='pt'?'Departamento':'Department';cpRoleLabel.textContent=lang==='pt'?'Cargo':'Job role';cpShiftLabel.textContent=lang==='pt'?'Turno':'Shift';cpStartLabel.textContent=lang==='pt'?'Data de início':'Start date';cpSave.textContent=lang==='pt'?'Salvar cadastro':'Save profile'}
 };
 window.checkOwnProfileCompletion=()=>{
